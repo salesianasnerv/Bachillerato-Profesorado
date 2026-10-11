@@ -67,8 +67,7 @@ function doGet() {
       className: row[COL.CLASSNAME] || "",
       itinerary: row[COL.ITINERARY] || "",
       date: toDateString_(row[COL.DATE]),
-      content: row[COL.CONTENT] || "",
-      eventId: row[COL.EVENT_ID] || ""
+      content: row[COL.CONTENT] || ""
     });
   }
 
@@ -76,7 +75,73 @@ function doGet() {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+// ---------------------------------------------------------------
+// SEGURIDAD: solo el profesorado puede crear, editar o borrar.
+// La lectura (doGet) es pública para que el alumnado vea el calendario.
+//
+// La clave NO está en este código ni en GitHub. Se configura en:
+// Apps Script > Configuración del proyecto (engranaje) >
+// Propiedades de la secuencia de comandos > Añadir propiedad:
+//    CLAVE_PROFESORADO = (la clave que compartes con el profesorado)
+// Usa una frase larga: es lo que impide adivinarla por fuerza bruta.
+// ---------------------------------------------------------------
+var CLAVE_PROPERTY = "CLAVE_PROFESORADO";
+var MAX_FAILED_ATTEMPTS = 15;     // intentos fallidos permitidos...
+var FAILED_WINDOW_SECONDS = 600;  // ...en una ventana de 10 minutos
+
+function safeEqual_(a, b) {
+  a = String(a); b = String(b);
+  var diff = a.length ^ b.length;
+  for (var i = 0; i < Math.max(a.length, b.length); i++) {
+    diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  }
+  return diff === 0;
+}
+
+function checkClave_(clave) {
+  var expected = PropertiesService.getScriptProperties().getProperty(CLAVE_PROPERTY);
+  if (!expected) {
+    return { ok: false, code: "not_configured", message: "El servidor no tiene configurada la clave del profesorado." };
+  }
+
+  var cache = CacheService.getScriptCache();
+  var fails = Number(cache.get("auth_fails") || 0);
+  if (fails >= MAX_FAILED_ATTEMPTS) {
+    return { ok: false, code: "locked", message: "Demasiados intentos fallidos. Espera unos minutos y vuelve a probar." };
+  }
+
+  if (typeof clave !== "string" || !safeEqual_(clave, expected)) {
+    cache.put("auth_fails", String(fails + 1), FAILED_WINDOW_SECONDS);
+    Utilities.sleep(1000);
+    return { ok: false, code: "unauthorized", message: "Clave incorrecta." };
+  }
+  return { ok: true };
+}
+
+// Ejecútala una vez desde el editor para comprobar que la clave está configurada.
+function comprobarConfiguracion() {
+  var ok = !!PropertiesService.getScriptProperties().getProperty(CLAVE_PROPERTY);
+  Logger.log(ok
+    ? "OK: la clave del profesorado está configurada."
+    : "FALTA: crea la propiedad " + CLAVE_PROPERTY + " en Configuración del proyecto > Propiedades de la secuencia de comandos.");
+}
+
 function doPost(e) {
+  var contents;
+  try {
+    contents = JSON.parse(e.postData.contents);
+  } catch (err) {
+    return jsonOutput_({ status: "error", message: "Petición no válida." });
+  }
+
+  var auth = checkClave_(contents && contents.clave);
+  if (!auth.ok) {
+    return jsonOutput_({ status: "error", code: auth.code, message: auth.message });
+  }
+  if (contents.action === "auth") {
+    return jsonOutput_({ status: "success" });
+  }
+
   var lock = LockService.getScriptLock();
   var locked = lock.tryLock(10000);
   if (!locked) {
@@ -84,7 +149,6 @@ function doPost(e) {
   }
 
   try {
-    var contents = JSON.parse(e.postData.contents);
     var action = contents.action;
     var sheet = getSheet_();
 

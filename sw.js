@@ -1,9 +1,9 @@
-const VERSION = "v3";
+const VERSION = "v4";
 const SHELL_CACHE = `examenes-shell-${VERSION}`;
 const CDN_CACHE = `examenes-cdn-${VERSION}`;
 
 const APP_SHELL = [
-  "index.html", "manifest.json",
+  "index.html", "manifest.json", "logo.svg",
   "icon-180.png", "icon-192.png", "icon-512.png", "icon-maskable-512.png",
   "favicon-32.png", "favicon-48.png", "favicon-192.png", "favicon.ico"
 ];
