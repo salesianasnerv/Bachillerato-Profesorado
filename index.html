@@ -77,6 +77,7 @@
         #tabs > a:hover, #tabs > button:hover { color: var(--azul); }
         #tabs > .activa { color: var(--azul); border-bottom-color: var(--verde); font-weight: 600; }
         #tabs svg { width: 16px; height: 16px; }
+        #tabs > a { display: block; }
         @media (max-width: 600px) {
             .marca .logo { height: 32px; } .marca h1 { font-size: 16px; padding-left: 10px; } .marca { gap: 10px; }
             #tabs > a, #tabs > button { padding: 12px 10px; font-size: 14px; }
@@ -161,7 +162,7 @@
     <nav id="tabs" class="no-print" aria-label="Secciones de la página">
         <a href="#calendario" data-sec="calendario" class="activa">Calendario</a>
         <button type="button" id="tab-nuevo" onclick="openCreateModal()"><i data-lucide="plus"></i>Nuevo examen</button>
-        <a href="#suscripcion" data-sec="suscripcion">Suscripción<span class="tab-largo">a calendarios</span></a>
+        <a href="#suscripcion" data-sec="suscripcion">Suscripción <span class="tab-largo">a calendarios</span></a>
     </nav>
     <div id="offline-banner" class="hidden no-print bg-amber-100 border-b border-amber-300 text-amber-900 text-xs font-semibold px-4 py-2 text-center"></div>
 
